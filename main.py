@@ -53,7 +53,8 @@ def git_clone(url, dir, name, hash=None):
                 print(f'{name} exists and URL is correct.')
         except:
             if os.path.isdir(dir) or os.path.exists(dir):
-                shutil.rmtree(dir, onerror=onerror)
+                print("Fooocus exists, but not a git repo. You can find how to solve this problem here: https://github.com/konieshadow/Fooocus-API#use-exist-fooocus")
+                sys.exit(1)
             os.makedirs(dir, exist_ok=True)
             repo = pygit2.clone_repository(url, dir)
             print(f'{name} cloned from {url}.')
@@ -158,6 +159,7 @@ def requirements_met(requirements_file):
 
 def download_repositories():
     import pygit2
+    import requests
 
     pygit2.option(pygit2.GIT_OPT_SET_OWNER_VALIDATION, 0)
 
@@ -172,9 +174,16 @@ def download_repositories():
         print(f"Using https proxy for git clone: {https_proxy}")
         os.environ['https_proxy'] = https_proxy
 
-    # Check and download Fooocus
+    fooocus_gitee_repo = 'https://gitee.com/mirrors/fooocus'
+    fooocus_github_repo = 'https://github.com/lllyasviel/Fooocus'
+
+    try:
+        requests.get("https://policies.google.com/privacy", timeout=30)
+        fooocus_repo_url = fooocus_github_repo
+    except:
+        fooocus_repo_url = fooocus_gitee_repo
     fooocus_repo = os.environ.get(
-        'FOOOCUS_REPO', 'https://github.com/lllyasviel/Fooocus')
+        'FOOOCUS_REPO', fooocus_repo_url)
     git_clone(fooocus_repo, repo_dir(fooocus_name),
               "Fooocus", fooocus_commit_hash)
     
@@ -219,7 +228,7 @@ def download_models():
 def install_dependents(args):
     if not args.skip_pip:
         torch_index_url = os.environ.get('TORCH_INDEX_URL', "https://download.pytorch.org/whl/cu121")
-        
+
         # Check if need pip install
         requirements_file = 'requirements.txt'
         if not requirements_met(requirements_file):
@@ -260,7 +269,8 @@ def prepare_environments(args) -> bool:
     import fooocusapi.worker as worker
     worker.task_queue.queue_size = args.queue_size
     worker.task_queue.history_size = args.queue_history
-    print(f"[Fooocus-API] Task queue size: {args.queue_size}, queue history size: {args.queue_history}")
+    worker.task_queue.webhook_url = args.webhook_url
+    print(f"[Fooocus-API] Task queue size: {args.queue_size}, queue history size: {args.queue_history}, webhook url: {args.webhook_url}")
 
     if args.gpu_device_id is not None:
         os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu_device_id)
@@ -285,7 +295,7 @@ def prepare_environments(args) -> bool:
     import modules.config as config
     import fooocusapi.parameters as parameters
     parameters.default_inpaint_engine_version = config.default_inpaint_engine_version
-    parameters.defualt_styles = config.default_styles
+    parameters.default_styles = config.default_styles
     parameters.default_base_model_name = config.default_base_model_name
     parameters.default_refiner_model_name = config.default_refiner_model_name
     parameters.default_refiner_switch = config.default_refiner_switch
@@ -304,7 +314,15 @@ def prepare_environments(args) -> bool:
 
     return True
 
-def pre_setup(skip_sync_repo: bool=False, disable_private_log: bool=False, skip_pip=False, load_all_models: bool=False, preload_pipeline: bool=False, always_gpu: bool=False, all_in_fp16: bool=False, preset: str | None=None):
+def pre_setup(skip_sync_repo: bool=False,
+              disable_private_log: bool=False,
+              skip_pip=False,
+              load_all_models: bool=False,
+              preload_pipeline: bool=False,
+              always_gpu: bool=False,
+              all_in_fp16: bool=False,
+              preset: str | None=None):
+
     class Args(object):
         host = '127.0.0.1'
         port = 8888
@@ -314,7 +332,7 @@ def pre_setup(skip_sync_repo: bool=False, disable_private_log: bool=False, skip_
         skip_pip = False
         preload_pipeline = False
         queue_size = 3
-        queue_history = 100
+        queue_history = 0
         preset = None
         always_gpu = False
         all_in_fp16 = False
