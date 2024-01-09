@@ -4,6 +4,7 @@ import re
 import shutil
 import subprocess
 import sys
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from importlib.util import find_spec
 from threading import Thread
 
@@ -21,6 +22,9 @@ index_url = os.environ.get('INDEX_URL', "")
 re_requirement = re.compile(r"\s*([-_a-zA-Z0-9]+)\s*(?:==\s*([-+_.a-zA-Z0-9]+))?\s*")
 
 fooocus_name = 'Fooocus'
+
+fooocus_gitee_repo = 'https://gitee.com/mirrors/fooocus'
+fooocus_github_repo = 'https://github.com/lllyasviel/Fooocus'
 
 modules_path = os.path.dirname(os.path.realpath(__file__))
 script_path = modules_path
@@ -45,12 +49,13 @@ def git_clone(url, dir, name, hash=None):
         try:
             repo = pygit2.Repository(dir)
             remote_url = repo.remotes['origin'].url
-            if remote_url != url:
+            if remote_url not in [fooocus_gitee_repo, fooocus_github_repo]:
                 print(f'{name} exists but remote URL will be updated.')
                 del repo
                 raise url
             else:
                 print(f'{name} exists and URL is correct.')
+            url = remote_url
         except:
             if os.path.isdir(dir) or os.path.exists(dir):
                 print("Fooocus exists, but not a git repo. You can find how to solve this problem here: https://github.com/konieshadow/Fooocus-API#use-exist-fooocus")
@@ -174,11 +179,8 @@ def download_repositories():
         print(f"Using https proxy for git clone: {https_proxy}")
         os.environ['https_proxy'] = https_proxy
 
-    fooocus_gitee_repo = 'https://gitee.com/mirrors/fooocus'
-    fooocus_github_repo = 'https://github.com/lllyasviel/Fooocus'
-
     try:
-        requests.get("https://policies.google.com/privacy", timeout=30)
+        requests.get("https://policies.google.com/privacy", timeout=5)
         fooocus_repo_url = fooocus_github_repo
     except:
         fooocus_repo_url = fooocus_gitee_repo
